@@ -8,7 +8,7 @@ import (
 	"path"
 	"testing"
 
-	"github.com/0xPolygon/polygon-edge/consensus/ibft/signer"
+	"github.com/nethermindeth/polybft-cl-poc/ibft/signer"
 	testHelper "github.com/0xPolygon/polygon-edge/helper/tests"
 	"github.com/0xPolygon/polygon-edge/state"
 	"github.com/0xPolygon/polygon-edge/types"

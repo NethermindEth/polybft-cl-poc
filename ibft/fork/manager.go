@@ -3,8 +3,8 @@ package fork
 import (
 	"errors"
 
-	"github.com/0xPolygon/polygon-edge/consensus/ibft/hook"
-	"github.com/0xPolygon/polygon-edge/consensus/ibft/signer"
+	"github.com/nethermindeth/polybft-cl-poc/ibft/hook"
+	"github.com/nethermindeth/polybft-cl-poc/ibft/signer"
 	"github.com/0xPolygon/polygon-edge/secrets"
 	"github.com/0xPolygon/polygon-edge/state"
 	"github.com/0xPolygon/polygon-edge/types"

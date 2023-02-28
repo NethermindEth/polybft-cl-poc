@@ -7,9 +7,9 @@ import (
 
 	"github.com/0xPolygon/polygon-edge/blockchain"
 	"github.com/0xPolygon/polygon-edge/consensus"
-	"github.com/0xPolygon/polygon-edge/consensus/ibft/fork"
-	"github.com/0xPolygon/polygon-edge/consensus/ibft/proto"
-	"github.com/0xPolygon/polygon-edge/consensus/ibft/signer"
+	"github.com/nethermindeth/polybft-cl-poc/ibft/fork"
+	"github.com/nethermindeth/polybft-cl-poc/ibft/proto"
+	"github.com/nethermindeth/polybft-cl-poc/ibft/signer"
 	"github.com/0xPolygon/polygon-edge/helper/progress"
 	"github.com/0xPolygon/polygon-edge/network"
 	"github.com/0xPolygon/polygon-edge/secrets"
