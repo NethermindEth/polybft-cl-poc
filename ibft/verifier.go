@@ -7,15 +7,15 @@ import (
 
 	"github.com/0xPolygon/go-ibft/messages"
 	protoIBFT "github.com/0xPolygon/go-ibft/messages/proto"
-	"github.com/nethermindeth/polybft-cl-poc/ibft/signer"
 	"github.com/0xPolygon/polygon-edge/crypto"
 	"github.com/0xPolygon/polygon-edge/types"
+	"github.com/nethermindeth/polybft-cl-poc/ibft/signer"
 )
 
 // Verifier impl for go-ibft
 // calculateProposalHashFromBlockBytes is a helper method to marshal ethereum block in bytes
 // and pass to calculateProposalHash
-func (i *backendIBFT) calculateProposalHashFromBlockBytes(
+func (i *BackendIBFT) calculateProposalHashFromBlockBytes(
 	proposal []byte,
 	round *uint64,
 ) (types.Hash, error) {
@@ -24,13 +24,8 @@ func (i *backendIBFT) calculateProposalHashFromBlockBytes(
 		return types.ZeroHash, err
 	}
 
-	signer, err := i.forkManager.GetSigner(block.Number())
-	if err != nil {
-		return types.ZeroHash, err
-	}
-
 	return i.calculateProposalHash(
-		signer,
+		i.signer,
 		block.Header,
 		round,
 	)
@@ -38,7 +33,7 @@ func (i *backendIBFT) calculateProposalHashFromBlockBytes(
 
 // calculateProposalHash is new hash calculation for proposal in go-ibft,
 // which includes round number block is finalized at
-func (i *backendIBFT) calculateProposalHash(
+func (i *BackendIBFT) calculateProposalHash(
 	signer signer.Signer,
 	header *types.Header,
 	round *uint64,
@@ -59,7 +54,7 @@ func (i *backendIBFT) calculateProposalHash(
 	), nil
 }
 
-func (i *backendIBFT) IsValidProposal(rawProposal []byte) bool {
+func (i *BackendIBFT) IsValidProposal(rawProposal []byte) bool {
 	var (
 		latestHeader      = i.blockchain.Header()
 		latestBlockNumber = latestHeader.Number
@@ -87,7 +82,7 @@ func (i *backendIBFT) IsValidProposal(rawProposal []byte) bool {
 		latestHeader,
 		newBlock.Header,
 		i.currentSigner,
-		i.currentValidators,
+		i.validatorSet,
 		i.currentHooks,
 		true,
 	); err != nil {
@@ -111,7 +106,7 @@ func (i *backendIBFT) IsValidProposal(rawProposal []byte) bool {
 	return true
 }
 
-func (i *backendIBFT) IsValidValidator(msg *protoIBFT.Message) bool {
+func (i *BackendIBFT) IsValidValidator(msg *protoIBFT.Message) bool {
 	msgNoSig, err := msg.PayloadNoSig()
 	if err != nil {
 		return false
@@ -158,7 +153,7 @@ func (i *backendIBFT) IsValidValidator(msg *protoIBFT.Message) bool {
 	return true
 }
 
-func (i *backendIBFT) IsProposer(id []byte, height, round uint64) bool {
+func (i *BackendIBFT) IsProposer(id []byte, height, round uint64) bool {
 	previousHeader, exists := i.blockchain.GetHeaderByNumber(height - 1)
 	if !exists {
 		i.logger.Error("header not found", "height", height-1)
@@ -174,7 +169,7 @@ func (i *backendIBFT) IsProposer(id []byte, height, round uint64) bool {
 	}
 
 	nextProposer := CalcProposer(
-		i.currentValidators,
+		i.validatorSet,
 		round,
 		previousProposer,
 	)
@@ -182,7 +177,7 @@ func (i *backendIBFT) IsProposer(id []byte, height, round uint64) bool {
 	return types.BytesToAddress(id) == nextProposer.Addr()
 }
 
-func (i *backendIBFT) IsValidProposalHash(proposal *protoIBFT.Proposal, hash []byte) bool {
+func (i *BackendIBFT) IsValidProposalHash(proposal *protoIBFT.Proposal, hash []byte) bool {
 	proposalHash, err := i.calculateProposalHashFromBlockBytes(proposal.RawProposal, &proposal.Round)
 	if err != nil {
 		return false
@@ -191,12 +186,12 @@ func (i *backendIBFT) IsValidProposalHash(proposal *protoIBFT.Proposal, hash []b
 	return bytes.Equal(proposalHash.Bytes(), hash)
 }
 
-func (i *backendIBFT) IsValidCommittedSeal(
+func (i *BackendIBFT) IsValidCommittedSeal(
 	proposalHash []byte,
 	committedSeal *messages.CommittedSeal,
 ) bool {
 	err := i.currentSigner.VerifyCommittedSeal(
-		i.currentValidators,
+		i.validatorSet,
 		types.BytesToAddress(committedSeal.Signer),
 		committedSeal.Signature,
 		proposalHash,
@@ -211,7 +206,7 @@ func (i *backendIBFT) IsValidCommittedSeal(
 	return true
 }
 
-func (i *backendIBFT) extractProposer(header *types.Header) (types.Address, error) {
+func (i *BackendIBFT) extractProposer(header *types.Header) (types.Address, error) {
 	if header.Number == 0 {
 		return types.ZeroAddress, nil
 	}

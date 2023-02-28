@@ -14,7 +14,7 @@ import (
 	"github.com/0xPolygon/polygon-edge/types"
 )
 
-func (i *backendIBFT) BuildProposal(view *proto.View) []byte {
+func (i *BackendIBFT) BuildProposal(view *proto.View) []byte {
 	var (
 		latestHeader      = i.blockchain.Header()
 		latestBlockNumber = latestHeader.Number
@@ -41,7 +41,7 @@ func (i *backendIBFT) BuildProposal(view *proto.View) []byte {
 }
 
 // InsertProposal inserts a proposal of which the consensus has been got
-func (i *backendIBFT) InsertProposal(
+func (i *BackendIBFT) InsertProposal(
 	proposal *proto.Proposal,
 	committedSeals []*messages.CommittedSeal,
 ) {
@@ -77,7 +77,7 @@ func (i *backendIBFT) InsertProposal(
 	// We don't know exact circumstance of the unmarshalRLP error
 	// This is a safety net to help us narrow down and also recover before
 	// writing the block
-	if err := i.ValidateExtraDataFormat(newBlock.Header); err != nil {
+	if _, err := i.signer.GetIBFTExtra(newBlock.Header); err != nil {
 		//Format committed seals to make them more readable
 		committedSealsStr := make([]string, len(committedSealsMap))
 		for i, seal := range committedSeals {
@@ -111,7 +111,7 @@ func (i *backendIBFT) InsertProposal(
 		"number", newBlock.Number(),
 		"hash", newBlock.Hash(),
 		"validation_type", i.currentSigner.Type(),
-		"validators", i.currentValidators.Len(),
+		"validators", i.validatorSet.Len(),
 		"committed", len(committedSeals),
 	)
 
@@ -131,15 +131,15 @@ func (i *backendIBFT) InsertProposal(
 	i.txpool.ResetWithHeaders(newBlock.Header)
 }
 
-func (i *backendIBFT) ID() []byte {
+func (i *BackendIBFT) ID() []byte {
 	return i.currentSigner.Address().Bytes()
 }
 
-func (i *backendIBFT) MaximumFaultyNodes() uint64 {
-	return uint64(CalcMaxFaultyNodes(i.currentValidators))
+func (i *BackendIBFT) MaximumFaultyNodes() uint64 {
+	return uint64(CalcMaxFaultyNodes(i.validatorSet))
 }
 
-func (i *backendIBFT) HasQuorum(
+func (i *BackendIBFT) HasQuorum(
 	blockNumber uint64,
 	messages []*proto.Message,
 	msgType proto.MessageType,
@@ -175,7 +175,7 @@ func (i *backendIBFT) HasQuorum(
 }
 
 // buildBlock builds the block, based on the passed in snapshot and parent header
-func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
+func (i *BackendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 	header := &types.Header{
 		ParentHash: parent.Hash,
 		Number:     parent.Number + 1,
@@ -210,7 +210,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 		return nil, err
 	}
 
-	i.currentSigner.InitIBFTExtra(header, i.currentValidators, parentCommittedSeals)
+	i.currentSigner.InitIBFTExtra(header, i.validatorSet, parentCommittedSeals)
 
 	transition, err := i.executor.BeginTxn(parent.StateRoot, header, i.currentSigner.Address())
 	if err != nil {
@@ -262,7 +262,7 @@ func (i *backendIBFT) buildBlock(parent *types.Header) (*types.Block, error) {
 
 // calcHeaderTimestamp calculates the new block timestamp, based
 // on the block time and parent timestamp
-func (i *backendIBFT) calcHeaderTimestamp(parentUnix uint64, currentTime time.Time) time.Time {
+func (i *BackendIBFT) calcHeaderTimestamp(parentUnix uint64, currentTime time.Time) time.Time {
 	var (
 		parentTimestamp    = time.Unix(int64(parentUnix), 0)
 		potentialTimestamp = parentTimestamp.Add(i.blockTime)
@@ -303,7 +303,7 @@ type transitionInterface interface {
 	WriteFailedReceipt(txn *types.Transaction) error
 }
 
-func (i *backendIBFT) writeTransactions(
+func (i *BackendIBFT) writeTransactions(
 	writeCtx context.Context,
 	gasLimit,
 	blockNumber uint64,
@@ -370,7 +370,7 @@ write:
 	return
 }
 
-func (i *backendIBFT) writeTransaction(
+func (i *BackendIBFT) writeTransaction(
 	tx *types.Transaction,
 	transition transitionInterface,
 	gasLimit uint64,
@@ -416,7 +416,7 @@ func (i *backendIBFT) writeTransaction(
 }
 
 // extractCommittedSeals extracts CommittedSeals from header
-func (i *backendIBFT) extractCommittedSeals(
+func (i *BackendIBFT) extractCommittedSeals(
 	header *types.Header,
 ) (signer.Seals, error) {
 	signer, err := i.forkManager.GetSigner(header.Number)
@@ -433,7 +433,7 @@ func (i *backendIBFT) extractCommittedSeals(
 }
 
 // extractParentCommittedSeals extracts ParentCommittedSeals from header
-func (i *backendIBFT) extractParentCommittedSeals(
+func (i *BackendIBFT) extractParentCommittedSeals(
 	header *types.Header,
 ) (signer.Seals, error) {
 	if header.Number == 0 {

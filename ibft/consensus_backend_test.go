@@ -45,7 +45,7 @@ func TestIBFTBackend_CalculateHeaderTimestamp(t *testing.T) {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
 
-			i := &backendIBFT{
+			i := &BackendIBFT{
 				blockTime: time.Duration(testCase.blockTime) * time.Second,
 			}
 
